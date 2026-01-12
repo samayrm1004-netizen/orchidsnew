@@ -1,0 +1,377 @@
+/* Updated: 2025-11-19T06:03:46.244Z */
+/* Updated: 2025-11-08T21:41:09.826Z */
+/* Updated: 2025-11-08T21:40:15.366Z */
+/* Updated: 2025-11-08T10:28:41.559Z */
+/* Updated: 2025-11-08T10:14:05.581Z */
+/* Updated: 2025-11-08T10:06:08.462Z */
+/* Updated: 2025-10-19T10:34:07.768Z */
+/* Updated: 2025-10-18T07:57:33.722Z */
+/* Updated: 2025-10-18T07:27:39.442Z */
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap");
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* Shadcn/UI colors - adapted for dark theme */
+  --color-background: #0A0E1A;
+  --color-foreground: #FFFFFF;
+
+  --color-card: #1A1F2E;
+  --color-card-foreground: #FFFFFF;
+
+  --color-popover: #1A1F2E;
+  --color-popover-foreground: #FFFFFF;
+
+  --color-primary: #E5E7EB;
+  --color-primary-foreground: #0A0E1A;
+
+  --color-secondary: #0F1419;
+  --color-secondary-foreground: #E5E7EB;
+
+  --color-muted: #1E293B;
+  --color-muted-foreground: #9CA3AF;
+
+  --color-accent: #F3F4F6;
+  --color-accent-foreground: #0A0E1A;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-border: #374151;
+  --color-input: #1E293B;
+  --color-ring: #E5E7EB;
+
+  --color-chart-1: #e67e22;
+  --color-chart-2: #2d8659;
+  --color-chart-3: #1e3a5f;
+  --color-chart-4: #f1c40f;
+  --color-chart-5: #e74c3c;
+
+  --color-sidebar: #0A0E1A;
+  --color-sidebar-foreground: #FFFFFF;
+  --color-sidebar-primary: #E5E7EB;
+  --color-sidebar-primary-foreground: #0A0E1A;
+  --color-sidebar-accent: #1E293B;
+  --color-sidebar-accent-foreground: #FFFFFF;
+  --color-sidebar-border: #374151;
+  --color-sidebar-ring: #E5E7EB;
+
+  /* Cosmos Design System Colors - Grayscale Cosmic Theme */
+  --color-background-primary: #0A0E1A;
+  --color-background-secondary: #0F1419;
+  --color-background-tertiary: #1A1F2E;
+  --color-background-accent: #1E293B;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #E5E7EB;
+  --color-text-tertiary: #9CA3AF;
+
+  --color-accent-primary: #E5E7EB;
+  --color-accent-secondary: #F3F4F6;
+  --color-accent-electric: #FFFFFF;
+
+  --color-border-accent: #6B7280;
+  --color-success: #10B981;
+
+  --color-glass-overlay: #FFFFFF; /* Used with opacity */
+
+  /* Typography */
+  --font-heading: "Playfair Display", serif;
+  --font-subheading: "DM Serif Display", serif;
+  --font-body: "Inter", sans-serif;
+  --font-monospace: "JetBrains Mono", monospace;
+
+  /* Shadcn/UI Radii */
+  --radius-lg: 1.5rem; /* 24px for cards */
+  --radius-md: 0.75rem; /* 12px for inputs */
+  --radius-sm: 0.5rem; /* 8px for small elements */
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+    --animate-accordion-up: accordion-up 0.2s ease-out;
+    --animate-scroll: scroll 40s linear infinite;
+
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes spin-reverse {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) translateX(20px);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.1);
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes lightning-flicker {
+    0%, 100% {
+      opacity: 0.4;
+    }
+    5%, 10%, 15%, 55%, 60% {
+      opacity: 1;
+    }
+    20%, 50%, 65% {
+      opacity: 0.2;
+    }
+  }
+  
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+    }
+
+    @keyframes scroll {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(calc(-50%));
+      }
+    }
+  }
+
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+}
+
+@layer utilities {
+  /* No custom utilities needed for this design system */
+}
+
+@layer base {
+  :root {
+    /* Shadcn/UI variables */
+    --background: var(--color-background);
+    --foreground: var(--color-foreground);
+    --card: var(--color-card);
+    --card-foreground: var(--color-card-foreground);
+    --popover: var(--color-popover);
+    --popover-foreground: var(--color-popover-foreground);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --muted: var(--color-muted);
+    --muted-foreground: var(--color-muted-foreground);
+    --accent: var(--color-accent);
+    --accent-foreground: var(--color-accent-foreground);
+    --destructive: var(--color-destructive);
+    --destructive-foreground: var(--color-destructive-foreground);
+    --border: var(--color-border);
+    --input: var(--color-input);
+    --ring: var(--color-ring);
+    --chart-1: var(--color-chart-1);
+    --chart-2: var(--color-chart-2);
+    --chart-3: var(--color-chart-3);
+    --chart-4: var(--color-chart-4);
+    --chart-5: var(--color-chart-5);
+    --radius: var(--radius-lg); /* Default radius for shadcn components */
+    --sidebar-background: var(--color-sidebar);
+    --sidebar-foreground: var(--color-sidebar-foreground);
+    --sidebar-primary: var(--color-sidebar-primary);
+    --sidebar-primary-foreground: var(--color-sidebar-primary-foreground);
+    --sidebar-accent: var(--color-sidebar-accent);
+    --sidebar-accent-foreground: var(--color-sidebar-accent-foreground);
+    --sidebar-border: var(--color-sidebar-border);
+    --sidebar-ring: var(--color-sidebar-ring);
+  }
+
+  /* Base typography and HTML element styles */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--color-text-primary);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-size: 5.5rem; /* 88px */
+  }
+
+  h2 {
+    font-size: 3.5rem; /* 56px */
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: var(--font-subheading);
+    font-size: 2.5rem; /* 40px */
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+
+  h4 {
+    font-family: var(--font-subheading);
+    font-size: 2rem; /* 32px */
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  h5 {
+    font-family: var(--font-subheading);
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0;
+  }
+
+  p {
+    font-size: 1rem; /* 16px */
+    line-height: 1.6;
+  }
+
+  .text-lg {
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.6;
+  }
+
+  .text-sm {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.5;
+  }
+
+  .text-xs {
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+  }
+
+  a {
+    color: var(--color-accent-primary);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  b, strong {
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 2rem; /* 32px */
+    padding-right: 2rem; /* 32px */
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 4rem; /* 64px */
+      padding-right: 4rem; /* 64px */
+    }
+  }
+
+  /* Apply base styles to Shadcn components */
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Hide Next.js error overlay portal */
+nextjs-portal {
+  display: none !important;
+}
