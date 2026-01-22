@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff, MessageSquare, X, Send, Loader2, ShieldCheck, Headphones } from "lucide-react";
+import { Mic, MicOff, MessageSquare, X, Send, Loader2, ShieldCheck, Headphones, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { RetellWebClient } from "retell-client-js-sdk";
 
-const VAPI_PUBLIC_KEY = "57d7e4cc-11bd-47f9-adcf-77e014b4b564";
-const VAPI_ASSISTANT_ID = "b7cac471-0f5f-43a5-b02c-78da131a5307";
+type Language = "english" | "hindi";
 
 type MessageRole = "user" | "assistant" | "system";
 interface Message {
@@ -24,11 +24,12 @@ export default function AIWidget() {
   const [inputMessage, setInputMessage] = useState("");
   const [currentTranscript, setCurrentTranscript] = useState<{ role: string; text: string } | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [vapiReady, setVapiReady] = useState(false);
+  const [retellReady, setRetellReady] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(true);
 
-  const vapiRef = useRef<any>(null);
+  const retellClientRef = useRef<RetellWebClient | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const pendingMessageRef = useRef<string | null>(null);
   const isStartingRef = useRef(false);
 
   const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -50,177 +51,189 @@ export default function AIWidget() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Initialize Vapi SDK once
+  // Initialize Retell Web Client once
   useEffect(() => {
-    if (!isLoaded || vapiRef.current) return;
+    if (!isLoaded || retellClientRef.current) return;
 
-    let mounted = true;
+    const retellClient = new RetellWebClient();
 
-    const init = async () => {
-      try {
-        const { default: Vapi } = await import("@vapi-ai/web");
-        if (!mounted) return;
+    retellClient.on("call_started", () => {
+      console.log("[RETELL] call_started event");
+      isStartingRef.current = false;
+      setIsCallActive(true);
+      setIsConnecting(false);
+      addMessage("system", "Connected. You can speak now.");
+    });
 
-        // Ensure we don't have an existing instance
-        if (vapiRef.current) return;
+    retellClient.on("call_ended", () => {
+      console.log("[RETELL] call_ended event");
+      isStartingRef.current = false;
+      setIsCallActive(false);
+      setIsConnecting(false);
+      setCurrentTranscript(null);
+      addMessage("system", "Session ended.");
+    });
 
-        const vapi = new Vapi(VAPI_PUBLIC_KEY);
+    retellClient.on("agent_start_talking", () => {
+      setIsSpeaking(true);
+    });
 
-        vapi.on("call-start", () => {
-          console.log("[VAPI] call-start event");
-          isStartingRef.current = false;
-          setIsCallActive(true);
-          setIsConnecting(false);
-          addMessage("system", "Connected. You can speak now.");
+    retellClient.on("agent_stop_talking", () => {
+      setIsSpeaking(false);
+    });
 
-          if (pendingMessageRef.current) {
-            vapi.send({
-              type: "add-message",
-              message: { role: "user", content: pendingMessageRef.current },
+    retellClient.on("update", (update) => {
+      // Handle transcript updates
+      if (update.transcript) {
+        const transcripts = update.transcript;
+        if (transcripts.length > 0) {
+          const lastTranscript = transcripts[transcripts.length - 1];
+
+          // Update current transcript for partial updates
+          setCurrentTranscript({
+            role: lastTranscript.role,
+            text: lastTranscript.content,
+          });
+
+          // Add finalized messages to chat
+          setMessages(prev => {
+            const newMessages: Message[] = [];
+            transcripts.forEach((t: any) => {
+              const role: MessageRole = t.role === "agent" ? "assistant" : "user";
+              const exists = prev.some(m => m.content === t.content && m.role === role);
+              if (!exists && t.content) {
+                newMessages.push({ role, content: t.content, id: generateId() });
+              }
             });
-            pendingMessageRef.current = null;
-          }
-        });
-
-        vapi.on("call-end", () => {
-          console.log("[VAPI] call-end event");
-          isStartingRef.current = false;
-          setIsCallActive(false);
-          setIsConnecting(false);
-          setCurrentTranscript(null);
-          addMessage("system", "Session ended.");
-        });
-
-        vapi.on("speech-start", () => setIsSpeaking(true));
-        vapi.on("speech-end", () => setIsSpeaking(false));
-
-        vapi.on("message", (msg: any) => {
-          if (msg.type === "transcript") {
-            if (msg.transcriptType === "partial") {
-              setCurrentTranscript({ role: msg.role, text: msg.transcript });
-            } else if (msg.transcriptType === "final") {
-              setCurrentTranscript(null);
-              const role: MessageRole = msg.role === "assistant" ? "assistant" : "user";
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last && last.role === role && last.content === msg.transcript) return prev;
-                return [...prev, { role, content: msg.transcript, id: generateId() }];
-              });
-            }
-          }
-        });
-
-        vapi.on("error", (err: any) => {
-          console.error("[VAPI] error event:", err);
-          isStartingRef.current = false;
-          setIsCallActive(false);
-          setIsConnecting(false);
-          const errMsg = err?.message || err?.error?.message || "Connection Error";
-          addMessage("system", `Error: ${errMsg}`);
-        });
-
-        vapiRef.current = vapi;
-        setVapiReady(true);
-        console.log("[VAPI] SDK initialized successfully");
-      } catch (e) {
-        console.error("[VAPI] SDK initialization failed:", e);
+            return newMessages.length > 0 ? [...prev, ...newMessages] : prev;
+          });
+        }
       }
-    };
+    });
 
-    init();
+    retellClient.on("error", (error) => {
+      console.error("[RETELL] error event:", error);
+      isStartingRef.current = false;
+      setIsCallActive(false);
+      setIsConnecting(false);
+      addMessage("system", `Error: ${error.message || "Connection Error"}`);
+    });
+
+    retellClientRef.current = retellClient;
+    setRetellReady(true);
+    console.log("[RETELL] Client initialized successfully");
 
     return () => {
-      mounted = false;
-      if (vapiRef.current) {
-        console.log("[VAPI] Cleaning up SDK instance...");
+      if (retellClientRef.current) {
+        console.log("[RETELL] Cleaning up client...");
         try {
-          vapiRef.current.stop();
-        } catch (e) {}
-        vapiRef.current = null;
-        setVapiReady(false);
+          retellClientRef.current.stopCall();
+        } catch (e) { }
+        retellClientRef.current = null;
+        setRetellReady(false);
       }
     };
   }, [isLoaded, addMessage]);
 
-  const startCall = useCallback(async () => {
-    const vapi = vapiRef.current;
-    
-    // Strict block: if vapi not ready, or already starting, or already active
-    if (!vapi || isStartingRef.current || isCallActive || isConnecting) {
-      console.log("[VAPI] startCall blocked:", { 
-        ready: !!vapi, 
-        starting: isStartingRef.current, 
-        active: isCallActive, 
-        connecting: isConnecting 
+  const getAccessToken = async (language: Language): Promise<string | null> => {
+    try {
+      const response = await fetch("/api/retell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ language }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to get access token");
+      }
+
+      const data = await response.json();
+      return data.access_token;
+    } catch (error) {
+      console.error("[RETELL] Failed to get access token:", error);
+      return null;
+    }
+  };
+
+  const startCall = useCallback(async (language: Language) => {
+    const retellClient = retellClientRef.current;
+
+    if (!retellClient || isStartingRef.current || isCallActive || isConnecting) {
+      console.log("[RETELL] startCall blocked:", {
+        ready: !!retellClient,
+        starting: isStartingRef.current,
+        active: isCallActive,
+        connecting: isConnecting
       });
       return;
     }
 
     isStartingRef.current = true;
     setIsConnecting(true);
-    console.log("[VAPI] Attempting to start call...");
+    setSelectedLanguage(language);
+    setShowLanguageSelector(false);
+    console.log("[RETELL] Attempting to start call with language:", language);
 
     try {
-      // Small safety delay to ensure any previous cleanup is finished
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Double check state after delay
+      const accessToken = await getAccessToken(language);
+
+      if (!accessToken) {
+        throw new Error("Could not obtain access token");
+      }
+
+      // Double check state after async operation
       if (isCallActive) {
         isStartingRef.current = false;
         setIsConnecting(false);
         return;
       }
 
-      await vapi.start(VAPI_ASSISTANT_ID);
+      await retellClient.startCall({
+        accessToken,
+        sampleRate: 24000,
+      });
     } catch (err: any) {
-      console.error("[VAPI] vapi.start() failed:", err);
+      console.error("[RETELL] startCall failed:", err);
       isStartingRef.current = false;
       setIsConnecting(false);
+      setShowLanguageSelector(true);
       const errMsg = err?.message || "Could not establish connection";
       addMessage("system", `Connection failed: ${errMsg}`);
     }
   }, [isCallActive, isConnecting, addMessage]);
 
   const stopCall = useCallback(() => {
-    const vapi = vapiRef.current;
-    if (vapi && (isCallActive || isConnecting || isStartingRef.current)) {
-      console.log("[VAPI] Manual stop requested");
+    const retellClient = retellClientRef.current;
+    if (retellClient && (isCallActive || isConnecting || isStartingRef.current)) {
+      console.log("[RETELL] Manual stop requested");
       try {
-        vapi.stop();
+        retellClient.stopCall();
       } catch (e) {
-        console.error("[VAPI] stop() failed:", e);
+        console.error("[RETELL] stopCall failed:", e);
       }
       setIsCallActive(false);
       setIsConnecting(false);
       isStartingRef.current = false;
+      setShowLanguageSelector(true);
     }
   }, [isCallActive, isConnecting]);
 
-  const handleSend = useCallback(() => {
-    const text = inputMessage.trim();
-    if (!text || !vapiRef.current) return;
-
-    setInputMessage("");
-    addMessage("user", text);
-
-    if (isCallActive) {
-      vapiRef.current.send({
-        type: "add-message",
-        message: { role: "user", content: text },
-      });
-    } else {
-      pendingMessageRef.current = text;
-      startCall();
-    }
-  }, [inputMessage, isCallActive, addMessage, startCall]);
+  const handleLanguageSelect = (language: Language) => {
+    startCall(language);
+  };
 
   const handleMicClick = useCallback(() => {
     if (isCallActive) {
       stopCall();
+    } else if (selectedLanguage) {
+      startCall(selectedLanguage);
     } else {
-      startCall();
+      setShowLanguageSelector(true);
     }
-  }, [isCallActive, startCall, stopCall]);
+  }, [isCallActive, selectedLanguage, startCall, stopCall]);
 
   if (!isLoaded) return null;
 
@@ -290,10 +303,10 @@ export default function AIWidget() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        isCallActive ? "bg-green-500 animate-pulse" : isConnecting ? "bg-yellow-500 animate-pulse" : vapiReady ? "bg-gray-500" : "bg-red-500"
+                        isCallActive ? "bg-green-500 animate-pulse" : isConnecting ? "bg-yellow-500 animate-pulse" : retellReady ? "bg-gray-500" : "bg-red-500"
                       )} />
                       <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">
-                        {isCallActive ? "Live" : isConnecting ? "Connecting..." : vapiReady ? "Ready" : "Loading..."}
+                        {isCallActive ? `Live (${selectedLanguage === "hindi" ? "हिंदी" : "English"})` : isConnecting ? "Connecting..." : retellReady ? "Ready" : "Loading..."}
                       </span>
                     </div>
                   </div>
@@ -305,6 +318,43 @@ export default function AIWidget() {
                   <X className="w-5 h-5 text-gray-400 group-hover:text-white" />
                 </button>
               </div>
+
+              {/* Language Selection */}
+              <AnimatePresence>
+                {showLanguageSelector && !isCallActive && !isConnecting && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-gradient-to-b from-purple-600/10 to-transparent border-b border-purple-500/20 overflow-hidden"
+                  >
+                    <div className="px-6 py-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Globe className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Select Your Language</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => handleLanguageSelect("english")}
+                          disabled={!retellReady}
+                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all disabled:opacity-50 group"
+                        >
+                          <span className="text-2xl">🇬🇧</span>
+                          <span className="text-sm font-bold text-white group-hover:text-purple-300">English</span>
+                        </button>
+                        <button
+                          onClick={() => handleLanguageSelect("hindi")}
+                          disabled={!retellReady}
+                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all disabled:opacity-50 group"
+                        >
+                          <span className="text-2xl">🇮🇳</span>
+                          <span className="text-sm font-bold text-white group-hover:text-purple-300">हिंदी (Hindi)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Active Call Bar */}
               <AnimatePresence>
@@ -350,7 +400,7 @@ export default function AIWidget() {
                       <MessageSquare className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-sm font-medium text-gray-300 max-w-xs">
-                      Click the mic button or type below to talk to Sheetal.
+                      Select a language above to start talking to Sheetal.
                     </p>
                   </div>
                 )}
@@ -415,23 +465,15 @@ export default function AIWidget() {
                       type="text"
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                      placeholder="Type a message..."
-                      disabled={!vapiReady}
+                      placeholder={isCallActive ? "Voice call in progress..." : "Select a language to start"}
+                      disabled={true}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl pl-5 pr-14 py-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-gray-600 disabled:opacity-50"
                     />
-                    <button
-                      onClick={handleSend}
-                      disabled={!inputMessage.trim() || !vapiReady}
-                      className="absolute right-2 top-2 bottom-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-20 text-white rounded-xl px-3 transition-all"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
                   </div>
 
                   <button
                     onClick={handleMicClick}
-                    disabled={isConnecting || !vapiReady}
+                    disabled={isConnecting || !retellReady || (!isCallActive && !selectedLanguage && showLanguageSelector)}
                     className={cn(
                       "p-4 rounded-2xl flex items-center justify-center transition-all shadow-xl",
                       isCallActive
