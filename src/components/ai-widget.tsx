@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff, MessageSquare, X, Send, Loader2, ShieldCheck, Headphones, Globe } from "lucide-react";
+import { Mic, MicOff, MessageSquare, X, Loader2, ShieldCheck, Headphones, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { RetellWebClient } from "retell-client-js-sdk";
@@ -21,7 +21,6 @@ export default function AIWidget() {
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
   const [currentTranscript, setCurrentTranscript] = useState<{ role: string; text: string } | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [retellReady, setRetellReady] = useState(false);
@@ -83,19 +82,16 @@ export default function AIWidget() {
     });
 
     retellClient.on("update", (update) => {
-      // Handle transcript updates
       if (update.transcript) {
         const transcripts = update.transcript;
         if (transcripts.length > 0) {
           const lastTranscript = transcripts[transcripts.length - 1];
 
-          // Update current transcript for partial updates
           setCurrentTranscript({
             role: lastTranscript.role,
             text: lastTranscript.content,
           });
 
-          // Add finalized messages to chat
           setMessages(prev => {
             const newMessages: Message[] = [];
             transcripts.forEach((t: any) => {
@@ -184,7 +180,6 @@ export default function AIWidget() {
         throw new Error("Could not obtain access token");
       }
 
-      // Double check state after async operation
       if (isCallActive) {
         isStartingRef.current = false;
         setIsConnecting(false);
@@ -239,118 +234,301 @@ export default function AIWidget() {
 
   return (
     <>
-      {/* Floating Trigger */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999]">
+      {/* Floating Trigger - Premium Cosmos AI Style */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999]">
         <motion.button
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           onClick={() => setIsOpen(!isOpen)}
-          className="group relative flex items-center gap-3 bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-3.5 rounded-full shadow-2xl hover:scale-105 transition-all duration-300"
+          className="group relative flex items-center gap-4 px-8 py-4 rounded-full shadow-2xl transition-all duration-500 hover:scale-[1.02]"
+          style={{
+            background: "linear-gradient(135deg, rgba(15, 15, 25, 0.95) 0%, rgba(25, 20, 40, 0.95) 100%)",
+            border: "1px solid rgba(139, 92, 246, 0.3)",
+            boxShadow: "0 0 60px rgba(139, 92, 246, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)"
+          }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+          {/* Animated glow ring */}
+          <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            style={{
+              background: "linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)",
+            }}
+          />
+
+          {/* Animated outer ring on active call */}
+          {isCallActive && (
+            <motion.div
+              className="absolute -inset-1 rounded-full"
+              animate={{
+                boxShadow: [
+                  "0 0 20px rgba(139, 92, 246, 0.3)",
+                  "0 0 40px rgba(139, 92, 246, 0.5)",
+                  "0 0 20px rgba(139, 92, 246, 0.3)"
+                ]
+              }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            />
+          )}
+
           <div className="relative flex items-center justify-center">
             {isCallActive ? (
-              <div className="flex gap-1 items-end h-4 w-5">
-                {[0, 1, 2].map((i) => (
+              <div className="flex gap-[3px] items-end h-5 w-6">
+                {[0, 1, 2, 3].map((i) => (
                   <motion.div
                     key={i}
-                    animate={{ height: ["20%", "100%", "20%"] }}
-                    transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                    className="w-1 bg-purple-500 rounded-full"
+                    animate={{ height: ["25%", "100%", "25%"] }}
+                    transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }}
+                    className="w-1 rounded-full"
+                    style={{ background: "linear-gradient(to top, #8b5cf6, #a78bfa)" }}
                   />
                 ))}
               </div>
             ) : (
-              <Mic className="w-5 h-5 text-purple-400 group-hover:text-purple-300" />
+              <div className="relative">
+                <div className="absolute inset-0 blur-lg bg-violet-500/30 rounded-full" />
+                <Mic className="w-5 h-5 text-violet-400 relative z-10 group-hover:text-violet-300 transition-colors" />
+              </div>
             )}
           </div>
-          <span className="text-sm font-bold tracking-tight text-white/90">
-            {isOpen ? "CLOSE SESSION" : "TALK TO SHEETAL (AI HR)"}
-          </span>
+
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] font-medium tracking-[0.2em] text-violet-400/60 uppercase">Cosmos AI</span>
+            <span className="text-sm font-semibold tracking-wide text-white/90">
+              {isOpen ? "Close Session" : "Talk to Sheetal"}
+            </span>
+          </div>
+
           {isCallActive && (
             <div className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 border border-black" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"
+                style={{ boxShadow: "0 0 10px rgba(52, 211, 153, 0.5)" }}
+              />
             </div>
           )}
         </motion.button>
       </div>
 
-      {/* Widget Panel */}
+      {/* Widget Panel - Premium Cosmos AI Design */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-black/90 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-2xl flex flex-col h-[700px] max-h-[85vh]"
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md overflow-hidden flex flex-col h-[680px] max-h-[85vh]"
+              style={{
+                background: "linear-gradient(180deg, rgba(15, 12, 25, 0.98) 0%, rgba(10, 8, 18, 0.99) 100%)",
+                borderRadius: "32px",
+                border: "1px solid rgba(139, 92, 246, 0.15)",
+                boxShadow: "0 0 100px rgba(139, 92, 246, 0.1), 0 50px 100px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.03)"
+              }}
             >
+              {/* Subtle gradient overlay */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.08) 0%, transparent 60%)"
+                }}
+              />
+
               {/* Header */}
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-b from-white/5 to-transparent">
+              <div className="relative p-6 flex items-center justify-between"
+                style={{
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.03)"
+                }}
+              >
                 <div className="flex items-center gap-4">
                   <div className="relative">
+                    {/* Avatar glow */}
                     <div className={cn(
-                      "absolute inset-0 rounded-2xl blur-xl transition-all duration-500",
-                      isCallActive ? "bg-purple-500/40" : "bg-blue-500/20"
+                      "absolute -inset-1 rounded-2xl blur-xl transition-all duration-700",
+                      isCallActive ? "bg-violet-500/40" : "bg-violet-500/20"
                     )} />
-                    <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center shadow-inner">
-                      {isCallActive ? <Headphones className="w-7 h-7 text-white animate-pulse" /> : <Mic className="w-7 h-7 text-white" />}
+                    {/* Avatar */}
+                    <div className="relative h-14 w-14 rounded-2xl flex items-center justify-center overflow-hidden"
+                      style={{
+                        background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #6366f1 100%)",
+                        boxShadow: "inset 0 2px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(124, 58, 237, 0.3)"
+                      }}
+                    >
+                      {isCallActive ? (
+                        <Headphones className="w-7 h-7 text-white" />
+                      ) : (
+                        <Sparkles className="w-7 h-7 text-white" />
+                      )}
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white tracking-tight">SHEETAL AI</h3>
+                    <h3 className="text-lg font-bold text-white tracking-tight">Sheetal AI</h3>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        isCallActive ? "bg-green-500 animate-pulse" : isConnecting ? "bg-yellow-500 animate-pulse" : retellReady ? "bg-gray-500" : "bg-red-500"
-                      )} />
-                      <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">
-                        {isCallActive ? `Live (${selectedLanguage === "hindi" ? "हिंदी" : "English"})` : isConnecting ? "Connecting..." : retellReady ? "Ready" : "Loading..."}
+                        "w-2 h-2 rounded-full transition-all duration-500",
+                        isCallActive ? "bg-emerald-400" : isConnecting ? "bg-amber-400" : retellReady ? "bg-violet-400" : "bg-red-400"
+                      )}
+                        style={{
+                          boxShadow: isCallActive
+                            ? "0 0 8px rgba(52, 211, 153, 0.6)"
+                            : isConnecting
+                              ? "0 0 8px rgba(251, 191, 36, 0.6)"
+                              : "0 0 8px rgba(139, 92, 246, 0.4)"
+                        }}
+                      />
+                      <span className="text-xs font-medium text-white/40 tracking-wide">
+                        {isCallActive
+                          ? `Live · ${selectedLanguage === "hindi" ? "हिंदी" : "English"}`
+                          : isConnecting
+                            ? "Connecting..."
+                            : retellReady
+                              ? "Ready"
+                              : "Initializing..."
+                        }
                       </span>
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10 group"
+                  className="p-2.5 rounded-xl transition-all duration-300 hover:bg-white/5 group"
+                  style={{ border: "1px solid rgba(255, 255, 255, 0.05)" }}
                 >
-                  <X className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                  <X className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
                 </button>
               </div>
 
-              {/* Language Selection */}
+              {/* Premium Language Selection */}
               <AnimatePresence>
                 {showLanguageSelector && !isCallActive && !isConnecting && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-gradient-to-b from-purple-600/10 to-transparent border-b border-purple-500/20 overflow-hidden"
+                    className="overflow-hidden relative"
                   >
-                    <div className="px-6 py-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Globe className="w-4 h-4 text-purple-400" />
-                        <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Select Your Language</span>
+                    <div className="px-6 py-6">
+                      <div className="text-center mb-5">
+                        <p className="text-sm font-medium text-white/50 tracking-wide">Choose your language</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* English Button - Premium */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => handleLanguageSelect("english")}
                           disabled={!retellReady}
-                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all disabled:opacity-50 group"
+                          className="group relative p-5 rounded-2xl transition-all duration-500 disabled:opacity-40 overflow-hidden"
+                          style={{
+                            background: "linear-gradient(145deg, rgba(30, 27, 45, 0.8) 0%, rgba(20, 18, 35, 0.9) 100%)",
+                            border: "1px solid rgba(139, 92, 246, 0.15)",
+                            boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03)"
+                          }}
                         >
-                          <span className="text-2xl">🇬🇧</span>
-                          <span className="text-sm font-bold text-white group-hover:text-purple-300">English</span>
-                        </button>
-                        <button
+                          {/* Hover gradient overlay */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            style={{
+                              background: "linear-gradient(145deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)"
+                            }}
+                          />
+                          {/* Content */}
+                          <div className="relative z-10 flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                              style={{
+                                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)",
+                                border: "1px solid rgba(59, 130, 246, 0.2)"
+                              }}
+                            >
+                              <span className="text-2xl font-bold bg-gradient-to-br from-blue-400 to-indigo-400 bg-clip-text text-transparent">A</span>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-white font-semibold tracking-wide">English</p>
+                              <p className="text-[10px] text-white/30 mt-0.5 tracking-wider uppercase">International</p>
+                            </div>
+                          </div>
+                          {/* Bottom accent */}
+                          <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            style={{
+                              background: "linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)"
+                            }}
+                          />
+                        </motion.button>
+
+                        {/* Hindi Button - Premium */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => handleLanguageSelect("hindi")}
                           disabled={!retellReady}
-                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all disabled:opacity-50 group"
+                          className="group relative p-5 rounded-2xl transition-all duration-500 disabled:opacity-40 overflow-hidden"
+                          style={{
+                            background: "linear-gradient(145deg, rgba(30, 27, 45, 0.8) 0%, rgba(20, 18, 35, 0.9) 100%)",
+                            border: "1px solid rgba(139, 92, 246, 0.15)",
+                            boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03)"
+                          }}
                         >
-                          <span className="text-2xl">🇮🇳</span>
-                          <span className="text-sm font-bold text-white group-hover:text-purple-300">हिंदी (Hindi)</span>
-                        </button>
+                          {/* Hover gradient overlay */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            style={{
+                              background: "linear-gradient(145deg, rgba(249, 115, 22, 0.1) 0%, rgba(234, 88, 12, 0.08) 100%)"
+                            }}
+                          />
+                          {/* Content */}
+                          <div className="relative z-10 flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                              style={{
+                                background: "linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.2) 100%)",
+                                border: "1px solid rgba(249, 115, 22, 0.2)"
+                              }}
+                            >
+                              <span className="text-2xl font-bold bg-gradient-to-br from-orange-400 to-amber-500 bg-clip-text text-transparent">अ</span>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-white font-semibold tracking-wide">हिंदी</p>
+                              <p className="text-[10px] text-white/30 mt-0.5 tracking-wider uppercase">Hindi</p>
+                            </div>
+                          </div>
+                          {/* Bottom accent */}
+                          <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                            style={{
+                              background: "linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.5), transparent)"
+                            }}
+                          />
+                        </motion.button>
                       </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Connecting State */}
+              <AnimatePresence>
+                {isConnecting && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 py-8 flex flex-col items-center justify-center">
+                      <motion.div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        animate={{
+                          boxShadow: [
+                            "0 0 0 0 rgba(139, 92, 246, 0.4)",
+                            "0 0 0 20px rgba(139, 92, 246, 0)",
+                          ]
+                        }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        style={{
+                          background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)"
+                        }}
+                      >
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                      </motion.div>
+                      <p className="text-white/60 text-sm font-medium">Establishing secure connection...</p>
+                      <p className="text-white/30 text-xs mt-1">
+                        {selectedLanguage === "hindi" ? "हिंदी एजेंट से कनेक्ट हो रहे हैं" : "Connecting to English agent"}
+                      </p>
                     </div>
                   </motion.div>
                 )}
@@ -363,29 +541,41 @@ export default function AIWidget() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-purple-600/10 border-b border-purple-500/20 overflow-hidden"
+                    className="overflow-hidden"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, transparent 100%)",
+                      borderBottom: "1px solid rgba(139, 92, 246, 0.1)"
+                    }}
                   >
                     <div className="px-6 py-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex gap-1 items-end h-4">
+                        <div className="flex gap-[3px] items-end h-4">
                           {[0, 1, 2, 3, 4].map((i) => (
                             <motion.div
                               key={i}
                               animate={{ height: isSpeaking ? ["20%", "100%", "20%"] : "30%" }}
                               transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }}
-                              className="w-1 bg-purple-500 rounded-full"
+                              className="w-1 rounded-full"
+                              style={{ background: "linear-gradient(to top, #8b5cf6, #a78bfa)" }}
                             />
                           ))}
                         </div>
-                        <span className="text-xs font-bold text-purple-400 tracking-wider">
-                          {isSpeaking ? "SPEAKING" : "LISTENING"}
+                        <span className="text-xs font-semibold tracking-wider uppercase"
+                          style={{ color: isSpeaking ? "#a78bfa" : "#6b7280" }}
+                        >
+                          {isSpeaking ? "Speaking" : "Listening"}
                         </span>
                       </div>
                       <button
                         onClick={stopCall}
-                        className="text-[10px] font-bold bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full border border-red-500/20 hover:bg-red-500/30 transition-all"
+                        className="text-xs font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:scale-105"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%)",
+                          color: "#f87171",
+                          border: "1px solid rgba(239, 68, 68, 0.2)"
+                        }}
                       >
-                        END CALL
+                        End Call
                       </button>
                     </div>
                   </motion.div>
@@ -393,14 +583,19 @@ export default function AIWidget() {
               </AnimatePresence>
 
               {/* Messages */}
-              <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-none">
-                {messages.length === 0 && !currentTranscript && (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                    <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 border border-white/5">
-                      <MessageSquare className="w-8 h-8 text-gray-400" />
+              <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-none">
+                {messages.length === 0 && !currentTranscript && !isConnecting && (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)",
+                        border: "1px solid rgba(139, 92, 246, 0.1)"
+                      }}
+                    >
+                      <MessageSquare className="w-7 h-7 text-violet-400/50" />
                     </div>
-                    <p className="text-sm font-medium text-gray-300 max-w-xs">
-                      Select a language above to start talking to Sheetal.
+                    <p className="text-sm text-white/30 max-w-xs leading-relaxed">
+                      Select a language above to start your conversation with Sheetal AI
                     </p>
                   </div>
                 )}
@@ -416,20 +611,27 @@ export default function AIWidget() {
                     )}
                   >
                     {msg.role === "system" ? (
-                      <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] py-2">
+                      <span className="text-[10px] font-medium text-white/20 uppercase tracking-[0.15em] py-2">
                         {msg.content}
                       </span>
                     ) : (
                       <>
                         <div className={cn(
-                          "max-w-[85%] px-5 py-3 rounded-[1.5rem] text-sm leading-relaxed shadow-lg",
-                          msg.role === "user"
-                            ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-none"
-                            : "bg-white/5 border border-white/10 text-gray-200 rounded-tl-none"
-                        )}>
+                          "max-w-[85%] px-5 py-3.5 text-sm leading-relaxed",
+                          msg.role === "user" ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-tl-md"
+                        )}
+                          style={msg.role === "user" ? {
+                            background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)",
+                            color: "white",
+                            boxShadow: "0 4px 20px rgba(124, 58, 237, 0.25)"
+                          } : {
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(255, 255, 255, 0.06)",
+                            color: "rgba(255, 255, 255, 0.85)"
+                          }}>
                           {msg.content}
                         </div>
-                        <span className="text-[10px] text-gray-500 mt-2 px-1 uppercase tracking-wider font-bold">
+                        <span className="text-[10px] text-white/25 mt-2 px-1 uppercase tracking-wider font-medium">
                           {msg.role === "user" ? "You" : "Sheetal"}
                         </span>
                       </>
@@ -446,28 +648,42 @@ export default function AIWidget() {
                       currentTranscript.role === "user" ? "items-end" : "items-start"
                     )}
                   >
-                    <div className="max-w-[85%] px-5 py-3 rounded-[1.5rem] text-sm leading-relaxed bg-white/5 border border-white/5 text-gray-400 italic">
+                    <div className="max-w-[85%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed italic"
+                      style={{
+                        background: "rgba(139, 92, 246, 0.05)",
+                        border: "1px solid rgba(139, 92, 246, 0.1)",
+                        color: "rgba(255, 255, 255, 0.5)"
+                      }}
+                    >
                       {currentTranscript.text}
-                      <span className="inline-block w-1.5 h-4 bg-purple-500 ml-1 animate-pulse align-middle" />
+                      <motion.span
+                        animate={{ opacity: [1, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.8 }}
+                        className="inline-block w-0.5 h-4 bg-violet-400 ml-1 align-middle"
+                      />
                     </div>
-                    <span className="text-[10px] text-purple-500/60 mt-2 px-1 uppercase tracking-widest font-bold">
-                      {currentTranscript.role === "user" ? "Listening..." : "Thinking..."}
+                    <span className="text-[10px] text-violet-400/50 mt-2 px-1 uppercase tracking-widest font-medium">
+                      {currentTranscript.role === "user" ? "Listening..." : "Speaking..."}
                     </span>
                   </motion.div>
                 )}
               </div>
 
-              {/* Input */}
-              <div className="p-6 pt-2 space-y-4">
-                <div className="flex gap-3">
+              {/* Footer */}
+              <div className="p-5 pt-3">
+                <div className="flex gap-3 mb-4">
                   <div className="relative flex-1">
                     <input
                       type="text"
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      placeholder={isCallActive ? "Voice call in progress..." : "Select a language to start"}
+                      placeholder={isCallActive ? "Voice conversation active..." : "Select language to begin"}
                       disabled={true}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl pl-5 pr-14 py-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-gray-600 disabled:opacity-50"
+                      className="w-full rounded-xl pl-5 pr-5 py-3.5 text-sm transition-all placeholder:text-white/20 disabled:cursor-not-allowed"
+                      style={{
+                        background: "rgba(255, 255, 255, 0.02)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        color: "white",
+                        opacity: 0.5
+                      }}
                     />
                   </div>
 
@@ -475,32 +691,32 @@ export default function AIWidget() {
                     onClick={handleMicClick}
                     disabled={isConnecting || !retellReady || (!isCallActive && !selectedLanguage && showLanguageSelector)}
                     className={cn(
-                      "p-4 rounded-2xl flex items-center justify-center transition-all shadow-xl",
-                      isCallActive
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-white text-black hover:bg-gray-200 disabled:opacity-50"
+                      "p-3.5 rounded-xl flex items-center justify-center transition-all duration-300 disabled:opacity-30",
+                      isCallActive ? "hover:scale-105" : "hover:scale-105"
                     )}
+                    style={isCallActive ? {
+                      background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                      boxShadow: "0 4px 20px rgba(239, 68, 68, 0.3)"
+                    } : {
+                      background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)",
+                      boxShadow: "0 4px 20px rgba(124, 58, 237, 0.3)"
+                    }}
                   >
                     {isConnecting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
                     ) : isCallActive ? (
-                      <MicOff className="w-5 h-5" />
+                      <MicOff className="w-5 h-5 text-white" />
                     ) : (
-                      <Mic className="w-5 h-5" />
+                      <Mic className="w-5 h-5 text-white" />
                     )}
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-green-500/50" />
-                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">End-to-End Encrypted</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
-                  </div>
+                <div className="flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500/40" />
+                  <span className="text-[10px] font-medium text-white/15 tracking-[0.2em] uppercase">
+                    Secured by Cosmos AI
+                  </span>
                 </div>
               </div>
             </motion.div>
